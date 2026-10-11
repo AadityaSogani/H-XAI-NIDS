@@ -1,0 +1,26 @@
+Phase 7: explainability layer + model persistence
+
+explain.py
+- TreeShapExplainer: global mean|SHAP| ranking plus per-row local
+  attributions, built lazily since TreeExplainer walks every tree. Absolute
+  value is used for global importance because signed contributions cancel and
+  hide features that matter in both directions.
+- SurrogateExplainer: local linear surrogate fitted on a neighbourhood built
+  from REAL near neighbours, perturbed along the segments between them.
+  Deliberately not LIME: LIME jitters each column independently, which invents
+  physically impossible flows (negative packet counts, IAT smaller than the
+  flow duration). A surrogate fitted on those rows explains a region the model
+  is never asked about. Fidelity R^2 is returned so a poor fit is visible
+  rather than presented as insight.
+
+registry.py
+- NIDSArtifact persists only the fitted state needed to reproduce a
+  prediction, keeping training (16 GB, full corpus) separate from serving
+  (fast cold start, small footprint).
+- align() enforces the feature contract: incoming frames are reordered against
+  the persisted feature list. A missing column RAISES instead of being
+  zero-filled, because silently scoring the wrong numbers yields a
+  confident-looking verdict computed from garbage.
+
+Tests: 137 passed (added 14 XAI + 9 registry, incl. a test asserting
+surrogate perturbations never leave the range spanned by real training rows).
