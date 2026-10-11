@@ -1,0 +1,38 @@
+﻿[1/6] cleaned 451,380 rows x 67 cols (1.7s)
+[2/6] features: 83 candidates (67 raw + 7 domain + 9 SFE) in 47.2s
+[3/6] selected 30 of 83 features (dropped 30 collinear) in 3.4s
+[4/6] balanced 315,972 -> 1,872,551 rows in 1.0s
+[5/6] trained 3-level hierarchy in 148.0s
+      anomaly threshold calibrated at 0.1375 (p99.9 of benign)
+
+[6/6] evaluation on the held-out test tier
+  Level-1 (binary)   PR-AUC 0.9714   ROC-AUC 0.9988
+  Level-2 family acc on true attacks: 82.32%
+  Level-3 escalations: 0 attacks + 88 benign rows called unseen
+
+  per-class report (test tier):
+                      precision    recall  f1-score   support
+
+              BENIGN      1.000     0.997     0.999     89169
+                 Bot      0.673     0.944     0.786       288
+           Port_Scan      0.997     0.992     0.995       391
+         Brute_Force      0.732     0.639     0.682       294
+Cross-Site_Scripting      0.357     0.462     0.403       130
+       SQL_Injection      0.000     0.000     0.000         0
+              UNSEEN      0.000     0.000     0.000         0
+
+            accuracy                          0.995     90272
+           macro avg      0.537     0.576     0.552     90272
+        weighted avg      0.997     0.995     0.996     90272
+
+  confusion matrix (rows = true, cols = predicted):
+                 BENIGN        Bot  Port_Scan  Brute_For  Cross-Sit  SQL_Injec     UNSEEN
+       BENIGN     88,943        132          1          0          5          0         88
+          Bot         16        272          0          0          0          0          0
+    Port_Scan          2          0        388          1          0          0          0
+   Brute_Forc          2          0          0        188        103          1          0
+   Cross-Site          2          0          0         68         60          0          0
+   SQL_Inject          0          0          0          0          0          0          0
+       UNSEEN          0          0          0          0          0          0          0
+
+  report written to artifacts\training_report.json

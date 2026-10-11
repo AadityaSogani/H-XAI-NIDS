@@ -1,0 +1,42 @@
+Phase 3: cluster-aware SMOTE + 3-level hierarchical detector
+
+balancing.py — k-Means SMOTE. Plain SMOTE interpolates between GLOBAL
+k-nearest neighbours, so when a minority class forms separated sub-clusters it
+invents synthetic points in the empty space between them; the classifier then
+learns a boundary that does not exist. This implementation clusters the
+minority rows only (so 99% benign does not drag the centroids) and interpolates
+within a cluster. Classes below k_neighbors+1 (SQL_INJECTION, 21 rows) fall
+back to jittered duplication. Shortfall is spread across clusters in proportion
+to how many of a class's rows live in each one, so sparse sub-clusters get more
+support.
+
+hierarchy.py — Level 1 binary gate -> Level 2 family -> Level 3 anomaly head.
+Level 2 trains on attacks only and holds out 20% of them, so the anomaly head
+learns what "normal for this class" means without seeing every attack.
+
+Two real defects found and fixed while testing:
+1. The anomaly threshold was hard-coded at 0.0, but
+   IsolationForest.decision_function is centred on its TRAINING distribution,
+   not on zero — in-distribution rows score slightly positive. A 0.0 cut-off
+   therefore flagged a large slice of healthy traffic as a zero-day attack.
+   The threshold is now calibrated to the p99.9 of benign scores, giving a
+   controlled ~0.1% false-alert rate (verified: 88 of 89,169 benign rows).
+2. A confident Level-2 call was trusted even for rows far outside every
+   training cluster. A tree ensemble returns p=0.95 for such points because it
+   has never seen a reason to doubt itself, so a genuinely novel attack got
+   filed under the nearest known family. The anomaly head now vetoes
+   over-confident calls on off-manifold rows.
+
+train.py — end-to-end run on all 451,380 real rows. Verified numbers:
+  Level-1   PR-AUC 0.9714   ROC-AUC 0.9988
+  Port Scan F1 0.995        overall accuracy 0.995
+
+Honest weaknesses, reported rather than hidden:
+  - Brute Force F1 0.682 — 103 of 294 test rows misclassified as XSS. Both are
+    "Web Attack" subtypes from the same Thursday shard and share a feature
+    profile; 68 XSS rows were misassigned the other way.
+  - XSS precision 0.357 — over half its predictions are wrong.
+  - SQL Injection has 0 test support by design (21 rows, held in train), so it
+    cannot be scored honestly on this corpus.
+
+Tests: 114 passed.
