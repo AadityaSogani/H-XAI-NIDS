@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   H-XAI-NIDS design tokens.
+
+   A security-operations theme: near-black canvas, cyan/violet accents for the
+   ML pipeline, and a fixed severity ramp (green -> red) that stays identical
+   between the dashboard, the alert cards and the charts, so a colour always
+   means the same thing.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --color-canvas: #05070d;
+  --color-surface: #0b1120;
+  --color-surface-2: #111a2e;
+  --color-line: #1e293b;
+
+  --color-ink: #e6edf7;
+  --color-ink-dim: #94a3b8;
+  --color-ink-faint: #64748b;
+
+  --color-cyan-glow: #22d3ee;
+  --color-violet-glow: #a78bfa;
+  --color-emerald: #22c55e;
+  --color-amber: #eab308;
+  --color-orange: #f97316;
+  --color-rose: #f43f5e;
+  --color-pink: #ec4899;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient glow behind the hero and page headers. */
+.aurora::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 420px;
+  background:
+    radial-gradient(45% 55% at 20% 0%, rgb(34 211 238 / 0.16), transparent 70%),
+    radial-gradient(40% 50% at 80% 10%, rgb(167 139 250 / 0.16), transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glass panel used for every card on the site. */
+.panel {
+  background: linear-gradient(
+    180deg,
+    rgb(17 26 46 / 0.85) 0%,
+    rgb(11 17 32 / 0.85) 100%
+  );
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  backdrop-filter: blur(8px);
+}
+
+.panel-hover {
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.panel-hover:hover {
+  border-color: rgb(34 211 238 / 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px -18px rgb(34 211 238 / 0.45);
+}
+
+/* Thin gradient rule used to separate sections. */
+.hairline {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(34 211 238 / 0.4),
+    rgb(167 139 250 / 0.4),
+    transparent
+  );
+}
+
+.grid-backdrop {
+  background-image:
+    linear-gradient(rgb(30 41 59 / 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(30 41 59 / 0.35) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(244 63 94 / 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgb(244 63 94 / 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgb(244 63 94 / 0);
+  }
+}
+
+.pulse-alert {
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(34 211 238 / 0.18),
+    transparent
+  );
+  animation: sweep 2.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-alert,
+  .sweep::after {
+    animation: none;
+  }
+}
+
+::selection {
+  background: rgb(34 211 238 / 0.3);
+}
+
