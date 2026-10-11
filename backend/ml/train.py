@@ -172,10 +172,37 @@ def main() -> int:
 
     _print_classification(y_test, verdicts)
 
+    # --- Persist the serving artifact ---------------------------------------
+    from ml.registry import NIDSArtifact
+
+    # A stratified background sample drives SHAP and the local surrogate at
+    # serving time.  Drawn from the test tier so explanations are not computed
+    # on the very rows the model was fitted to.
+    background_idx = np.random.default_rng(42).choice(
+        len(X_test), size=min(1500, len(X_test)), replace=False
+    )
+    artifact = NIDSArtifact(
+        model=model,
+        feature_names=features,
+        metadata={
+            "version": "1.0.0",
+            "selected_features": features,
+            "level1": report["level1"],
+            "level2_family_accuracy": report["level2_family_accuracy_on_attacks"],
+            "anomaly_threshold": model.unseen_threshold,
+            "train_rows": int(len(y_train)),
+            "balanced_rows": int(len(y_bal)),
+        },
+    )
+    artifact.save(ARTIFACT_DIR)
+
+    background_path = ARTIFACT_DIR / "background.npy"
+    np.save(background_path, X_test[background_idx])
+
     (ARTIFACT_DIR / "training_report.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
     )
-    print(f"\n  report written to {ARTIFACT_DIR / 'training_report.json'}")
+    print(f"\n  artifact written to {ARTIFACT_DIR}/ (model + manifest + background)")
     return 0
 
 

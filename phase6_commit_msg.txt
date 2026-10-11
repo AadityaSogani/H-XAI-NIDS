@@ -1,0 +1,32 @@
+Phase 6: FastAPI backend for the trained hierarchy
+
+app/config.py      Settings from env, all with working defaults.
+app/schemas.py     Pydantic contracts. FlowFeatures uses extra="allow" because
+                   the CICIDS feature set is wide and the selected subset may
+                   change on retrain; requiring every column up front would
+                   break the client each time. align() ignores extras.
+app/model_store.py Loads the artifact ONCE during lifespan startup, not per
+                   request - deserialising a 200-tree forest on every call would
+                   dominate latency. If no artifact exists the app still boots
+                   and reports model_loaded=false, so /health tells an operator
+                   exactly what is wrong instead of the container crashing.
+app/routes.py      /health /predict /predict/explain /predict/batch
+                   /predict/upload /metrics /features.
+                   A malformed feature dict returns 400 (caller error); a missing
+                   model returns 503 (server state). SHAP failures never lose an
+                   alert - explanations are advisory and degrade to empty.
+app/smoke_test.py  Live end-to-end test against the real artifact.
+
+Verified working against the trained model:
+  GET  /health          -> 200  model_loaded=True, 30 features
+  GET  /metrics         -> 200  PR-AUC 0.9714
+  POST /predict         -> 200  BENIGN (level 1, conf 1.0)
+  POST /predict/explain -> 200  10 SHAP terms, surrogate R2=1.0
+                                top driver: Init Bwd Win Bytes = -1.0
+  POST /predict/batch   -> 200  25 flows, 1 attack, 0 unseen
+  POST /predict (bad)   -> 400  "Missing 30 required feature(s)"
+
+train.py now persists the serving artifact (model.joblib 296 MB, manifest.json,
+background.npy) so the API and the metrics endpoint share one source of truth.
+
+Tests: 128 unit + 9 registry, plus the live smoke suite.
