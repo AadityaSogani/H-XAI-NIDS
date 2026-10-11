@@ -86,7 +86,10 @@ class SFETransformer:
 
         out = np.hstack([dists, log_resp])
         out = np.nan_to_num(out, nan=0.0, posinf=0.0, neginf=0.0)
-        return pd.DataFrame(out, columns=self.feature_names_, index=X.index)
+        # A fresh RangeIndex is deliberate: the input index may contain duplicate
+        # labels (e.g. after .iloc[train_idx] on a shuffled corpus), and
+        # pd.concat(axis=1) would then outer-join on them and duplicate rows.
+        return pd.DataFrame(out, columns=self.feature_names_)
 
     def fit_transform(self, X: pd.DataFrame) -> pd.DataFrame:
         return self.fit(X).transform(X)

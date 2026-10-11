@@ -177,13 +177,31 @@ def test_sfe_clamps_too_many_clusters():
     assert out.shape[1] <= N_SFE_FEATURES
 
 
-def test_sfe_preserves_index(flow_frame):
+def test_sfe_returns_a_fresh_range_index(flow_frame):
+    """The embedding must NOT carry the input index forward.
+
+    A corpus sliced with ``.iloc[train_idx]`` has non-contiguous, possibly
+    duplicated labels.  Preserving them made ``pd.concat(axis=1)`` outer-join on
+    the labels and silently duplicate rows (315,972 rows became 410,780).
+    """
     indexed = flow_frame.copy()
     indexed.index = [f"row{i}" for i in range(len(indexed))]
 
     out = SFETransformer().fit_transform(indexed)
 
-    assert list(out.index) == list(indexed.index)
+    assert list(out.index) == list(range(len(indexed)))
+
+
+def test_sfe_concat_with_reset_frame_does_not_duplicate_rows(flow_frame):
+    """Regression test for the index-join row blow-up."""
+    frame = flow_frame.copy()
+    frame.index = np.repeat(np.arange(len(frame)), 2)[: len(frame)]  # dup labels
+
+    emb = SFETransformer().fit_transform(frame)
+    joined = pd.concat([frame.reset_index(drop=True), emb], axis=1)
+
+    assert len(joined) == len(frame)
+    assert not joined.isna().any().any()
 
     described = {d["name"] for d in describe_domain_features()}
     assert described == set(DOMAIN_FEATURES)
