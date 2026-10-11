@@ -57,6 +57,23 @@ export interface FeatureContract {
   metadata: Record<string, unknown>;
 }
 
+export interface ClassMetrics {
+  precision: number;
+  recall: number;
+  f1: number;
+  support: number;
+}
+
+export interface Evaluation {
+  per_class: Record<string, ClassMetrics>;
+  confusion_matrix: { labels: string[]; matrix: number[][] };
+  /** Downsampled to ~100 points by the trainer. */
+  curves: {
+    pr: { precision: number[]; recall: number[] };
+    roc: { fpr: number[]; tpr: number[] };
+  };
+}
+
 export interface TrainingMetrics {
   available: boolean;
   metrics: {
@@ -74,6 +91,7 @@ export interface TrainingMetrics {
     attacks_escalated_as_unseen?: number;
     benign_escalated_as_unseen?: number;
     level_distribution?: Record<string, number>;
+    evaluation?: Evaluation;
     training_seconds?: number;
   } | null;
   message?: string | null;
@@ -93,9 +111,15 @@ export const FAMILY_STYLE: Record<
   "Potential Unseen Attack": { color: "#fb7185", short: "Unseen", severity: 5 },
 };
 
+/** Alternate spellings seen across reports and verdicts → FAMILY_STYLE keys. */
+const FAMILY_ALIASES: Record<string, string> = {
+  UNSEEN: "Potential Unseen Attack",
+};
+
 export function styleFor(label: string) {
+  const key = FAMILY_ALIASES[label] ?? label;
   return (
-    FAMILY_STYLE[label] ?? {
+    FAMILY_STYLE[key] ?? {
       color: "#94a3b8",
       short: label,
       severity: 1,

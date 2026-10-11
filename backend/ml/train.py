@@ -23,7 +23,9 @@ from sklearn.metrics import (
     average_precision_score,
     classification_report,
     confusion_matrix,
+    precision_recall_curve,
     roc_auc_score,
+    roc_curve,
 )
 
 if __package__ in (None, ""):
@@ -35,7 +37,7 @@ if __package__ in (None, ""):
     from ml.selection import hybrid_select
     from ml.sfe import SFETransformer
     from ml.splitting import stratified_split
-    from ml.taxonomy import DISPLAY_NAMES, AttackClass
+    from ml.taxonomy import AttackClass
 else:
     from .balancing import KMeansSMOTE
     from .data import apply_log1p, load_shards
@@ -44,7 +46,7 @@ else:
     from .selection import hybrid_select
     from .sfe import SFETransformer
     from .splitting import stratified_split
-    from .taxonomy import DISPLAY_NAMES, AttackClass
+    from .taxonomy import AttackClass
 
 DATA_GLOB = (
     "../Network-Detection-Intrusion-System/Datasets/Sogani Datasets/*.parquet"
@@ -170,7 +172,10 @@ def main() -> int:
     print(f"  Level-3 escalations: {report['attacks_escalated_as_unseen']:,} attacks "
           f"+ {report['benign_escalated_as_unseen']:,} benign rows called unseen")
 
-    _print_classification(y_test, verdicts)
+    # Persisted into training_report.json so the dashboard charts the real
+    # evaluation rather than hard-coded figures.
+    report["evaluation"] = _evaluate(y_test, y_bin_true, p_attack, verdicts)
+    _print_classification(report["evaluation"])
 
     # --- Persist the serving artifact ---------------------------------------
     from ml.registry import NIDSArtifact
@@ -206,8 +211,18 @@ def main() -> int:
     return 0
 
 
-def _print_classification(y_test: np.ndarray, verdicts: list[dict]) -> None:
-    """Per-class report and confusion matrix, treating UNSEEN as its own class."""
+def _evaluate(
+    y_test: np.ndarray,
+    y_bin_true: np.ndarray,
+    p_attack: np.ndarray,
+    verdicts: list[dict],
+) -> dict:
+    """Per-class metrics, confusion matrix and downsampled PR/ROC curves.
+
+    Everything here is persisted into training_report.json so the dashboard
+    charts real numbers.  Curves are capped at 100 points (every k-th) —
+    full-resolution curves would be megabytes for little visual gain.
+    """
     pred_ids = np.array(
         [v["label_id"] if v["label_id"] >= 0 else 99 for v in verdicts]
     )
@@ -217,26 +232,68 @@ def _print_classification(y_test: np.ndarray, verdicts: list[dict]) -> None:
     for c in present:
         if c == 99:
             names.append("UNSEEN")
-        elif c == int(AttackClass.BENIGN):
-            names.append("BENIGN")
         else:
-            names.append(DISPLAY_NAMES[AttackClass(c)].replace(" ", "_"))
+            # AttackClass.name matches the verdict labels the serving hierarchy
+            # emits (BENIGN, PORT_SCAN, XSS, …) so one colour ramp works across
+            # charts, badges and tables.
+            names.append(AttackClass(c).name)
+
+    report_dict = classification_report(
+        y_test, pred_ids, labels=present, target_names=names,
+        zero_division=0, output_dict=True,
+    )
+    per_class = {
+        name: {
+            "precision": round(report_dict[name]["precision"], 4),
+            "recall": round(report_dict[name]["recall"], 4),
+            "f1": round(report_dict[name]["f1-score"], 4),
+            "support": int(report_dict[name]["support"]),
+        }
+        for name in names
+    }
+
+    cm = confusion_matrix(y_test, pred_ids, labels=present)
+
+    def _sample(*arrays: np.ndarray) -> list[list[float]]:
+        """Evenly subsample curve points and round to 4 decimals."""
+        n = max(len(a) for a in arrays)
+        idx = np.unique(np.linspace(0, n - 1, min(n, 100)).astype(int))
+        return [a[idx].round(4).tolist() for a in arrays]
+
+    pr_precision, pr_recall, _ = precision_recall_curve(y_bin_true, p_attack)
+    roc_fpr, roc_tpr, _ = roc_curve(y_bin_true, p_attack)
+    pr_p, pr_r = _sample(pr_precision, pr_recall)
+    rc_f, rc_t = _sample(roc_fpr, roc_tpr)
+
+    return {
+        "per_class": per_class,
+        "confusion_matrix": {"labels": names, "matrix": cm.tolist()},
+        "curves": {
+            "pr": {"precision": pr_p, "recall": pr_r},
+            "roc": {"fpr": rc_f, "tpr": rc_t},
+        },
+    }
+
+
+def _print_classification(evaluation: dict) -> None:
+    """Console mirror of the persisted evaluation (UNSEEN as its own class)."""
+    per_class = evaluation["per_class"]
+    cm = evaluation["confusion_matrix"]
 
     print("\n  per-class report (test tier):")
-    print(classification_report(
-        y_test, pred_ids, labels=present, target_names=names,
-        zero_division=0, digits=3,
-    ))
+    print(f"   {'class':>12} {'precision':>10} {'recall':>10} {'f1':>10} {'support':>10}")
+    for name, m in per_class.items():
+        print(
+            f"   {name:>12} {m['precision']:>10.3f} {m['recall']:>10.3f} "
+            f"{m['f1']:>10.3f} {m['support']:>10,}"
+        )
 
     print("  confusion matrix (rows = true, cols = predicted):")
-    print("   " + " " * 10 + " ".join(f"{n[:9]:>10}" for n in names))
-    cm = confusion_matrix(y_test, pred_ids, labels=present)
-    for name, row in zip(names, cm):
+    labels = cm["labels"]
+    print("   " + " " * 10 + " ".join(f"{n[:9]:>10}" for n in labels))
+    for name, row in zip(labels, cm["matrix"]):
         print(f"   {name[:10]:>10} " + " ".join(f"{v:>10,}" for v in row))
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-
-    X_sel = X_train[features].to_numpy(dtype=np.float64)

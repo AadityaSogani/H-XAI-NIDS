@@ -95,6 +95,9 @@ yarn-error.log*
 .pnpm-debug.log*
 lerna-debug.log*
 
+# Runtime logs (uvicorn, training runs, next start, …)
+*.log
+
 # Environment variables & secrets
 .env
 .env*.local

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { styleFor } from "@/lib/types";
 
 /** Glass card used across every page. */
 export function Panel({
@@ -241,15 +242,7 @@ export function Nav() {
   );
 }
 
+/** Colour + short name for a family label; delegates to the shared ramp. */
 export function familyStyle(label: string): { color: string; short: string } {
-  const map: Record<string, { color: string; short: string }> = {
-    BENIGN: { color: "#22c55e", short: "Benign" },
-    BOT: { color: "#f97316", short: "Bot" },
-    PORT_SCAN: { color: "#eab308", short: "Port Scan" },
-    BRUTE_FORCE: { color: "#f43f5e", short: "Brute Force" },
-    XSS: { color: "#a78bfa", short: "XSS" },
-    SQL_INJECTION: { color: "#ec4899", short: "SQL Injection" },
-    "Potential Unseen Attack": { color: "#fb7185", short: "Unseen" },
-  };
-  return map[label] ?? { color: "#94a3b8", short: label };
+  return styleFor(label);
 }
