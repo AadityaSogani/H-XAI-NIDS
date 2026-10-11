@@ -1,0 +1,125 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+sdist/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.dmypy.json
+.ruff_cache/
+.pyre/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# ---------- Data & model artifacts ----------
+# Large raw parquet datasets (kept out of git; fetched/provided separately)
+*.parquet
+*.parquet.crc
+*.npz
+*.npy
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.cbm
+*.ubj
+
+# Nested legacy repository (has its own .git; do not embed as a submodule)
+Network-Detection-Intrusion-System/
+
+# Trained model artifacts & generated metrics
+backend/artifacts/
+backend/ml/artifacts/
+reports/
+outputs/
+plots/
+*.onnx
+
+# ---------- Node / Next.js ----------
+node_modules/
+.pnp
+.pnp.js
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js build output
+.next/
+out/
+next-env.d.ts
+
+# Production / misc
+build/
+dist/
+*.tsbuildinfo
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# Environment variables & secrets
+.env
+.env*.local
+.env.development
+.env.production
+.env.local
+*.pem
+
+# Vercel
+.vercel
+
+# ---------- OS / Editor ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Temporary scratch output from exploratory scripts
+_slides/
+_scratch/
+tmp/
+*.tmp
