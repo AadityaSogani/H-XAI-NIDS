@@ -43,6 +43,79 @@ export interface BatchResult {
   verdicts: Verdict[];
 }
 
+/** The countermeasure a prevention decision prescribes. */
+export type ActionType =
+  | "ALLOW"
+  | "ALERT"
+  | "RATE_LIMIT"
+  | "DROP"
+  | "BLOCK"
+  | "QUARANTINE";
+
+/** Colour + label for each prevention action, on the same SOC palette. */
+export const ACTION_STYLE: Record<
+  ActionType,
+  { color: string; short: string; blurb: string }
+> = {
+  ALLOW: { color: "#22c55e", short: "Allow", blurb: "benign — let it through" },
+  ALERT: { color: "#eab308", short: "Alert", blurb: "log/raise, do not disrupt" },
+  RATE_LIMIT: { color: "#f97316", short: "Rate-limit", blurb: "throttle a noisy source" },
+  DROP: { color: "#f43f5e", short: "Drop", blurb: "discard the flow" },
+  BLOCK: { color: "#fb7185", short: "Block", blurb: "blackhole the source" },
+  QUARANTINE: { color: "#a78bfa", short: "Quarantine", blurb: "isolate for triage" },
+};
+
+export function actionStyle(action: string) {
+  return (
+    ACTION_STYLE[action as ActionType] ?? {
+      color: "#94a3b8",
+      short: action,
+      blurb: "",
+    }
+  );
+}
+
+export interface FlowContext {
+  src_ip?: string | null;
+  dst_ip?: string | null;
+  dst_port?: number | null;
+  protocol?: string | null;
+}
+
+export interface PreventionAction {
+  action: ActionType;
+  enforced: boolean;
+  gated: boolean;
+  escalated: boolean;
+  severity: number;
+  ttl_seconds: number;
+  rationale: string;
+  rule: string;
+  subject: string | null;
+}
+
+export interface PreventionDecision {
+  verdict: Verdict;
+  prevention: PreventionAction;
+  model_version: string | null;
+}
+
+export interface BlockEntry {
+  key: string;
+  action: string;
+  severity: number;
+  reason: string;
+  hits: number;
+  created_at: number;
+  expires_at: number;
+  ttl_remaining: number;
+}
+
+export interface BlocklistResult {
+  total: number;
+  entries: BlockEntry[];
+}
+
 export interface Health {
   status: string;
   model_loaded: boolean;

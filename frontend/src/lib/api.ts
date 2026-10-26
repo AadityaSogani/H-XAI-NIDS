@@ -1,8 +1,11 @@
 import type {
   BatchResult,
+  BlocklistResult,
   FeatureContract,
+  FlowContext,
   Health,
   Prediction,
+  PreventionDecision,
   TrainingMetrics,
 } from "./types";
 
@@ -128,4 +131,29 @@ export const api = {
 
     return (await response.json()) as BatchResult;
   },
+
+  /**
+   * Detect a flow AND return a countermeasure.  `context` is optional metadata
+   * (src IP / port) used only to key the action — never fed to the model.
+   * `mode: "monitor"` is a dry run that reports the action without enforcing.
+   */
+  prevent: (
+    features: Record<string, number>,
+    context: FlowContext | null,
+    mode: "prevent" | "monitor" = "prevent",
+  ) =>
+    request<PreventionDecision>("/prevent", {
+      method: "POST",
+      body: JSON.stringify({ features, context, mode }),
+    }),
+
+  /** The live blocklist: subjects currently blocked, soonest-expiry first. */
+  blocklist: () => request<BlocklistResult>("/prevent/blocklist"),
+
+  /** Manually clear one block before its TTL expires. */
+  unblock: (key: string) =>
+    request<{ removed: string; remaining: number }>(
+      `/prevent/blocklist/${encodeURIComponent(key)}`,
+      { method: "DELETE" },
+    ),
 };

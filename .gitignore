@@ -126,3 +126,6 @@ _slides/
 _scratch/
 tmp/
 *.tmp
+
+backend/.backend.pid
+frontend/.frontend.pid

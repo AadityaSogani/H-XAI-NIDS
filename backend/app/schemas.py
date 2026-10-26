@@ -105,3 +105,99 @@ class ErrorResponse(BaseModel):
 
     detail: str
     code: str = "bad_request"
+
+
+# ---------------------------------------------------------------------------
+# Prevention (IPS) contracts.
+#
+# These sit *beside* the detection contracts, never replacing them: detection
+# still returns a ``Verdict``; prevention wraps that verdict in a countermeasure
+# decision.  ``FlowContext`` is deliberately separate from ``FlowFeatures`` — it
+# carries IP/port metadata the detector never sees (those columns are dropped at
+# training time) and is used only to key a blocklist entry.
+# ---------------------------------------------------------------------------
+
+
+class FlowContext(BaseModel):
+    """Optional, model-irrelevant metadata used to key a prevention action.
+
+    None of these fields are fed to the detector — they exist so a prevention
+    decision has something concrete to act on (an IP to block, a port to drop).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    src_ip: str | None = Field(
+        default=None, description="Source IP to block/rate-limit, if known."
+    )
+    dst_ip: str | None = Field(default=None, description="Destination IP, if known.")
+    dst_port: int | None = Field(
+        default=None, ge=0, le=65535, description="Destination port, if known."
+    )
+    protocol: str | None = Field(
+        default=None, description="L4 protocol hint, e.g. 'tcp' / 'udp'."
+    )
+
+
+class PreventionRequest(BaseModel):
+    """A flow to detect-and-prevent: features + optional context + mode."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    features: dict[str, Any] = Field(
+        ...,
+        description="Raw CICIDS-2017 flow statistics, keyed by column name.",
+    )
+    context: FlowContext | None = Field(
+        default=None, description="Optional metadata used only to key the action."
+    )
+    mode: str = Field(
+        default="prevent",
+        description="'prevent' enforces; 'monitor' is a dry run that never blocks.",
+        pattern="^(prevent|monitor)$",
+    )
+
+
+class PreventionAction(BaseModel):
+    """The countermeasure chosen for a verdict, with its provenance."""
+
+    action: str = Field(description="ALLOW, ALERT, RATE_LIMIT, DROP, BLOCK or QUARANTINE.")
+    enforced: bool = Field(description="True if this call actually added a blocklist entry.")
+    gated: bool = Field(
+        description="True if an attack was downgraded to ALERT by the confidence gate."
+    )
+    escalated: bool = Field(description="True if this subject was already blocked (repeat offender).")
+    severity: int = Field(description="0 (info) .. 5 (critical); matches the UI severity ramp.")
+    ttl_seconds: int = Field(description="How long the enforced block lasts; 0 if none.")
+    rationale: str = Field(description="Human-readable reason for the decision.")
+    rule: str = Field(description="A representative packet-filter rule an operator could apply.")
+    subject: str | None = Field(description="Blocklist key acted on, e.g. 'ip:1.2.3.4'.")
+
+
+class PreventionDecision(BaseModel):
+    """A detection verdict bundled with its prevention action."""
+
+    verdict: Verdict
+    prevention: PreventionAction
+    model_version: str | None = None
+
+
+class BlockEntry(BaseModel):
+    """One active entry on the prevention blocklist."""
+
+    key: str
+    action: str
+    severity: int
+    reason: str
+    hits: int
+    created_at: float
+    expires_at: float
+    ttl_remaining: float
+
+
+class BlocklistResponse(BaseModel):
+    """The live blocklist, soonest-expiry first."""
+
+    total: int
+    entries: list[BlockEntry]
+

@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .model_store import store
 from .routes import router
+from .prevention_routes import router as prevention_router
 
 
 @asynccontextmanager
@@ -49,6 +50,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(prevention_router)
 
 
 @app.get("/", tags=["meta"])
@@ -64,6 +66,8 @@ def root() -> dict:
             "predict_explained": "POST /predict/explain",
             "predict_batch": "POST /predict/batch",
             "predict_upload": "POST /predict/upload",
+            "prevent": "POST /prevent",
+            "blocklist": "GET /prevent/blocklist",
             "metrics": "/metrics",
             "features": "/features",
             "docs": "/docs",

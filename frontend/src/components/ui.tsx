@@ -203,6 +203,7 @@ export function Nav() {
     { href: "/", label: "Overview" },
     { href: "/dashboard", label: "Dashboard" },
     { href: "/detect", label: "Live Detect" },
+    { href: "/prevent", label: "Prevention" },
     { href: "/batch", label: "Batch Scan" },
     { href: "/explain", label: "Explainability" },
     { href: "/architecture", label: "Architecture" },
