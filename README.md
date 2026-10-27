@@ -109,6 +109,27 @@ pip install -r requirements.txt
 
 ## 8. Usage Instructions
 
+### Run the website (recommended)
+
+Requires **Python 3.13** (the verified stack). Python 3.15 is not supported by the pinned dependencies.
+
+Backend (FastAPI):
+```bash
+cd backend
+py -3.13 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Frontend (Next.js), in a second terminal:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open http://localhost:3000 (API at http://localhost:8000).
+
+One-click: run `run_website.bat` from the project root, or use the VS Code task "Start Website".
+
 ### Run Data Preprocessing
 
 ```bash
